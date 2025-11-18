@@ -1,5 +1,7 @@
+'use client';
+
 import { PreSalesDashboardPage } from '@/components/dashboard/pre-sales-dashboard-page';
 
-export default function PreVendaDashboardPage() {
+export default function PreVendasDashboardPage() {
   return <PreSalesDashboardPage />;
 }
