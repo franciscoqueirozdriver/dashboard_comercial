@@ -1,4 +1,5 @@
 import type {
+  AverageTimeAggregate,
   AverageTimeByOrigin,
   BusinessForecastByQualificationCountItem,
   BusinessForecastByQualificationValueItem,
@@ -7,7 +8,9 @@ import type {
   MeetingQualitySQLItem,
   MonthlyDealForecastItem,
   PreSalesMetricsItem,
-  SellersMetricsItem
+  QuestionnaireTemperature,
+  SellersMetricsItem,
+  SellerPerformanceItem
 } from './types';
 import { parseCurrencyBRLToNumber } from './parsers';
 
@@ -143,4 +146,52 @@ export function buildLeadSpeedScore(origin: AverageTimeByOrigin): number {
   }
   const maxReference = 7 * 24 * 3600;
   return Math.max(0, 100 - (total / maxReference) * 100);
+}
+
+export function calculateAverageTemperatureScore(questionnaires: QuestionnaireTemperature[]): number {
+  const accumulator = questionnaires.reduce(
+    (acc, questionnaire) => {
+      questionnaire.temperatures.forEach((temperature) => {
+        acc.totalQuantity += temperature.quantity;
+        acc.totalScore += temperature.quantity * temperature.rating;
+      });
+      return acc;
+    },
+    { totalQuantity: 0, totalScore: 0 }
+  );
+
+  return accumulator.totalQuantity === 0 ? 0 : accumulator.totalScore / accumulator.totalQuantity;
+}
+
+export function calculateSqlToSaleConversion(metrics: SellersMetricsItem[]): number {
+  const totals = metrics.reduce(
+    (acc, metric) => {
+      acc.sql += metric.sql;
+      acc.sales += metric.sales;
+      return acc;
+    },
+    { sql: 0, sales: 0 }
+  );
+
+  return calculatePercentage(totals.sales, totals.sql);
+}
+
+export function calculateSalesActualValue(performance: SellerPerformanceItem[]): number {
+  return performance.reduce((acc, seller) => {
+    return (
+      acc +
+      seller.monthlyValues.reduce((innerAcc, monthly) => {
+        const [actual] = monthly.value.split('/');
+        const parsed = parseCurrencyBRLToNumber(actual?.trim() ?? '') ?? 0;
+        return innerAcc + parsed;
+      }, 0)
+    );
+  }, 0);
+}
+
+export function averageTimeToSaleHours(averageTime: AverageTimeAggregate | null): number {
+  if (!averageTime) {
+    return 0;
+  }
+  return averageTimeInHours(averageTime.totalSale);
 }
