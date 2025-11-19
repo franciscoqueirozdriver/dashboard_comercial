@@ -16,36 +16,62 @@ import {
   fetchQuestionnaireTemperatures,
   fetchSellerPerformance,
   fetchSellersMetrics,
-  fetchSellersProduction
+  fetchSellersProduction,
+  type SpotterQueryParams
 } from '@/lib/spotter/client';
 import type { SpotterAnalyticsDTO } from '@/lib/spotter/types';
 
-type SettledResult<T> = PromiseSettledResult<T>;
+export const dynamic = 'force-dynamic';
 
-function buildBaseParams(searchParams: URLSearchParams) {
-  const today = new Date();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const format = (date: Date) => date.toISOString().split('T')[0];
+function formatDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
 
-  const datainicial = searchParams.get('datainicial') ?? format(startOfMonth);
-  const datafinal = searchParams.get('datafinal') ?? format(today);
-  const collaborator = searchParams.get('colaborador');
-  const origin = searchParams.get('origem');
-  const questionnaire = searchParams.get('questionario');
+function normalizeDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
 
-  const params: Record<string, string> = {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return formatDate(parsed);
+}
+
+function getDefaultDateRange() {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  return {
+    datainicial: formatDate(startOfMonth),
+    datafinal: formatDate(endOfMonth)
+  };
+}
+
+function buildBaseParams(searchParams: URLSearchParams): SpotterQueryParams {
+  const defaults = getDefaultDateRange();
+  const datainicial = normalizeDate(searchParams.get('datainicial')) ?? defaults.datainicial;
+  const datafinal = normalizeDate(searchParams.get('datafinal')) ?? defaults.datafinal;
+
+  const params: SpotterQueryParams = {
     datainicial,
     datafinal
   };
 
+  const collaborator = searchParams.get('colaborador');
   if (collaborator) {
     params.colaborador = collaborator;
   }
 
+  const origin = searchParams.get('origem');
   if (origin) {
     params.origem = origin;
   }
 
+  const questionnaire = searchParams.get('questionario');
   if (questionnaire) {
     params.questionario = questionnaire;
   }
@@ -53,76 +79,79 @@ function buildBaseParams(searchParams: URLSearchParams) {
   return params;
 }
 
-function unwrapSettled<T>(result: SettledResult<T>, fallback: T) {
-  if (result.status === 'fulfilled') {
-    return result.value;
-  }
-
-  console.error(result.reason);
-  return fallback;
-}
-
 export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const params = buildBaseParams(url.searchParams);
+  try {
+    const url = new URL(request.url);
+    const params = buildBaseParams(url.searchParams);
 
-  const [
-    funnelActivityResult,
-    harvestResult,
-    sellerPerformanceResult,
-    preSalesPerformanceResult,
-    preSalesMetricsResult,
-    sellersMetricsResult,
-    preSalesProductionResult,
-    sellersProductionResult,
-    callFeedbacksSentResult,
-    callFeedbackRequestsResult,
-    meetingQualityResult,
-    meetingQualitySQLResult,
-    monthlyDealForecastResult,
-    businessForecastCountResult,
-    businessForecastValueResult,
-    questionnaireTemperaturesResult,
-    averageTimeResult
-  ] = await Promise.allSettled([
-    fetchFunnelActivity(params),
-    fetchHarvest(params),
-    fetchSellerPerformance(params),
-    fetchPreSalesPerformance(params),
-    fetchPreSalesMetrics(params),
-    fetchSellersMetrics(params),
-    fetchPreSalesProduction(params),
-    fetchSellersProduction(params),
-    fetchCallFeedbacksSent(params),
-    fetchCallFeedbackRequests(params),
-    fetchMeetingQuality(params),
-    fetchMeetingQualitySQL(params),
-    fetchMonthlyDealForecast(params),
-    fetchBusinessForecastByQualificationCount(params),
-    fetchBusinessForecastByQualificationValue(params),
-    fetchQuestionnaireTemperatures(params),
-    fetchAverageTime(params)
-  ]);
+    const [
+      funnelActivity,
+      harvest,
+      sellerPerformance,
+      preSalesPerformance,
+      preSalesMetrics,
+      sellersMetrics,
+      preSalesProduction,
+      sellersProduction,
+      callFeedbacksSent,
+      callFeedbackRequests,
+      meetingQuality,
+      meetingQualitySQL,
+      monthlyDealForecast,
+      businessForecastByQualificationCount,
+      businessForecastByQualificationValue,
+      questionnaireTemperatures,
+      averageTime
+    ] = await Promise.all([
+      fetchFunnelActivity(params),
+      fetchHarvest(params),
+      fetchSellerPerformance(params),
+      fetchPreSalesPerformance(params),
+      fetchPreSalesMetrics(params),
+      fetchSellersMetrics(params),
+      fetchPreSalesProduction(params),
+      fetchSellersProduction(params),
+      fetchCallFeedbacksSent(params),
+      fetchCallFeedbackRequests(params),
+      fetchMeetingQuality(params),
+      fetchMeetingQualitySQL(params),
+      fetchMonthlyDealForecast(params),
+      fetchBusinessForecastByQualificationCount(params),
+      fetchBusinessForecastByQualificationValue(params),
+      fetchQuestionnaireTemperatures(params),
+      fetchAverageTime(params)
+    ]);
 
-  const payload: SpotterAnalyticsDTO = {
-    funnelActivity: unwrapSettled(funnelActivityResult, []),
-    harvest: unwrapSettled(harvestResult, []),
-    sellerPerformance: unwrapSettled(sellerPerformanceResult, []),
-    preSalesPerformance: unwrapSettled(preSalesPerformanceResult, []),
-    preSalesMetrics: unwrapSettled(preSalesMetricsResult, []),
-    sellersMetrics: unwrapSettled(sellersMetricsResult, []),
-    preSalesProduction: unwrapSettled(preSalesProductionResult, []),
-    sellersProduction: unwrapSettled(sellersProductionResult, []),
-    callFeedbacksSent: unwrapSettled(callFeedbacksSentResult, []),
-    callFeedbackRequests: unwrapSettled(callFeedbackRequestsResult, []),
-    meetingQuality: unwrapSettled(meetingQualityResult, null),
-    meetingQualitySQL: unwrapSettled(meetingQualitySQLResult, null),
-    monthlyDealForecast: unwrapSettled(monthlyDealForecastResult, []),
-    businessForecastByQualificationCount: unwrapSettled(businessForecastCountResult, []),
-    businessForecastByQualificationValue: unwrapSettled(businessForecastValueResult, []),
-    questionnaireTemperatures: unwrapSettled(questionnaireTemperaturesResult, []),
-    averageTime: unwrapSettled(averageTimeResult, null)
-  };
+    const payload: SpotterAnalyticsDTO = {
+      funnelActivity,
+      harvest,
+      sellerPerformance,
+      preSalesPerformance,
+      preSalesMetrics,
+      sellersMetrics,
+      preSalesProduction,
+      sellersProduction,
+      callFeedbacksSent,
+      callFeedbackRequests,
+      meetingQuality,
+      meetingQualitySQL,
+      monthlyDealForecast,
+      businessForecastByQualificationCount,
+      businessForecastByQualificationValue,
+      questionnaireTemperatures,
+      averageTime
+    };
 
-  return NextResponse.json(payload);
+    return NextResponse.json(payload);
+  } catch (error) {
+    console.error('Spotter API error', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json(
+      {
+        error: 'Spotter API error',
+        details: message
+      },
+      { status: 500 }
+    );
+  }
 }

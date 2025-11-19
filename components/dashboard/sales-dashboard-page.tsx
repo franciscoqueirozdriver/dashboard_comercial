@@ -25,7 +25,7 @@ export function SalesDashboardPage() {
   if (error) {
     return (
       <div className="p-10 text-center text-red-300">
-        Não foi possível carregar o painel de vendas.
+        Não foi possível carregar os dados do Spotter. Tente novamente mais tarde.
       </div>
     );
   }

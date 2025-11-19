@@ -20,9 +20,20 @@ import type {
 
 export type SpotterQueryParams = Record<string, string>;
 
+function buildBaseUrl() {
+  const rawBaseUrl = process.env.EXACT_SPOTTER_BASE_URL ?? 'https://api.exactspotter.com/v3';
+  const sanitizedBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+  const apiVersion = process.env.EXACT_SPOTTER_API_VERSION?.replace(/^\/+|\/+$/g, '');
+
+  if (apiVersion && !sanitizedBaseUrl.toLowerCase().endsWith(`/${apiVersion.toLowerCase()}`)) {
+    return `${sanitizedBaseUrl}/${apiVersion}/`;
+  }
+
+  return `${sanitizedBaseUrl}/`;
+}
+
 async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams): Promise<T> {
-  const baseUrl = process.env.EXACT_SPOTTER_BASE_URL ?? 'https://api.exactspotter.com/v3';
-  const baseWithTrailingSlash = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const baseWithTrailingSlash = buildBaseUrl();
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
   const url = new URL(normalizedPath, baseWithTrailingSlash);
 
@@ -43,6 +54,17 @@ async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams):
   });
 
   if (!response.ok) {
+    let errorBody: unknown;
+    try {
+      errorBody = await response.json();
+    } catch {
+      errorBody = await response.text();
+    }
+    console.error('Spotter API error response:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorBody
+    });
     throw new Error(`Spotter API error: ${response.status} ${response.statusText}`);
   }
 

@@ -47,7 +47,7 @@ export function MasterDashboardPage() {
   if (error) {
     return (
       <div className="p-10 text-center text-red-300">
-        Ocorreu um erro ao carregar o dashboard. Tente novamente em instantes.
+        Não foi possível carregar os dados do Spotter. Tente novamente mais tarde.
       </div>
     );
   }

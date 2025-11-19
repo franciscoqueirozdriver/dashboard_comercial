@@ -33,7 +33,7 @@ export function PreSalesDashboardPage() {
   if (error) {
     return (
       <div className="p-10 text-center text-red-300">
-        Não foi possível carregar os dados de pré-venda.
+        Não foi possível carregar os dados do Spotter. Tente novamente mais tarde.
       </div>
     );
   }
