@@ -56,6 +56,34 @@ function isTokenRequiredError(payload: unknown): boolean {
   return false;
 }
 
+function extractErrorMessage(payload: unknown): string | null {
+  if (!payload) {
+    return null;
+  }
+
+  if (typeof payload === 'string') {
+    return payload;
+  }
+
+  if (typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+    if (typeof record.message === 'string') {
+      return record.message;
+    }
+    if (typeof record.error === 'string') {
+      return record.error;
+    }
+    if (typeof record.error === 'object' && record.error && 'message' in record.error) {
+      const nested = (record.error as Record<string, unknown>).message;
+      if (typeof nested === 'string') {
+        return nested;
+      }
+    }
+  }
+
+  return null;
+}
+
 async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams): Promise<T> {
   const baseWithTrailingSlash = buildBaseUrl();
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
@@ -92,6 +120,7 @@ async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams):
     }
 
     const tokenRequired = isTokenRequiredError(parsedBody);
+    const apiMessage = extractErrorMessage(parsedBody);
     const logPayload = {
       status: response.status,
       statusText: response.statusText,
@@ -109,7 +138,7 @@ async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams):
 
     const message = tokenRequired
       ? 'Spotter API error: TokenRequired'
-      : `Spotter API error: ${response.status} ${response.statusText}`;
+      : `Spotter API error: ${response.status} ${response.statusText}${apiMessage ? ` - ${apiMessage}` : ''}`;
     throw new Error(message);
   }
 
