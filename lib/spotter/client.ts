@@ -71,7 +71,7 @@ async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams):
 
   const response = await fetch(url.toString(), {
     headers: {
-      Token: process.env.EXACT_SPOTTER_TOKEN ?? '',
+      token_exact: process.env.EXACT_SPOTTER_TOKEN ?? '',
       'Content-Type': 'application/json'
     },
     cache: 'no-store'
@@ -100,7 +100,7 @@ async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams):
 
     if (tokenRequired) {
       console.error(
-        'Spotter API error: TokenRequired – verifique EXACT_SPOTTER_TOKEN e o header usado',
+        'Spotter API error: TokenRequired – verifique EXACT_SPOTTER_TOKEN e o header token_exact',
         logPayload
       );
     } else {

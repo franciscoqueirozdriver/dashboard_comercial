@@ -46,19 +46,23 @@ function getDefaultDateRange() {
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
   return {
-    datainicial: formatDate(startOfMonth),
-    datafinal: formatDate(endOfMonth)
+    dataInicial: formatDate(startOfMonth),
+    dataFinal: formatDate(endOfMonth)
   };
 }
 
 function buildBaseParams(searchParams: URLSearchParams): SpotterQueryParams {
   const defaults = getDefaultDateRange();
-  const datainicial = normalizeDate(searchParams.get('datainicial')) ?? defaults.datainicial;
-  const datafinal = normalizeDate(searchParams.get('datafinal')) ?? defaults.datafinal;
+  const dataInicial =
+    normalizeDate(searchParams.get('datainicial') ?? searchParams.get('dataInicial')) ??
+    defaults.dataInicial;
+  const dataFinal =
+    normalizeDate(searchParams.get('datafinal') ?? searchParams.get('dataFinal')) ??
+    defaults.dataFinal;
 
   const params: SpotterQueryParams = {
-    datainicial,
-    datafinal
+    dataInicial,
+    dataFinal
   };
 
   const collaborator = searchParams.get('colaborador');
@@ -147,7 +151,7 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     if (message.includes('TokenRequired')) {
       console.error(
-        'Spotter API error: TokenRequired – verifique EXACT_SPOTTER_TOKEN e o header usado',
+        'Spotter API error: TokenRequired – verifique EXACT_SPOTTER_TOKEN e o header token_exact',
         error
       );
       return NextResponse.json(
