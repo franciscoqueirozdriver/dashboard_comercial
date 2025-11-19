@@ -19,15 +19,37 @@ export function PreSalesDashboardPage() {
   const [filters, setFilters] = useState<DashboardFilters>(initialFilters);
   const { data, error, isLoading } = useSpotterAnalytics(filters);
 
-  const collaboratorOptions = useMemo(() => data?.preSalesMetrics.map((metric) => metric.userName) ?? [], [data]);
-  const originOptions = useMemo(() => data?.averageTime?.list.map((item) => item.name) ?? [], [data]);
+  const safeData = useMemo(
+    () => ({
+      funnelActivity: data?.funnelActivity ?? [],
+      harvest: data?.harvest ?? [],
+      preSalesMetrics: data?.preSalesMetrics ?? [],
+      preSalesProduction: data?.preSalesProduction ?? [],
+      callFeedbacksSent: data?.callFeedbacksSent ?? [],
+      callFeedbackRequests: data?.callFeedbackRequests ?? [],
+      meetingQuality: data?.meetingQuality ?? null,
+      meetingQualitySQL: data?.meetingQualitySQL ?? null,
+      questionnaireTemperatures: data?.questionnaireTemperatures ?? [],
+      averageTime: data?.averageTime ?? null
+    }),
+    [data]
+  );
+
+  const collaboratorOptions = useMemo(
+    () => safeData.preSalesMetrics.map((metric) => metric.userName),
+    [safeData.preSalesMetrics]
+  );
+  const originOptions = useMemo(
+    () => safeData.averageTime?.list.map((item) => item.name) ?? [],
+    [safeData.averageTime]
+  );
   const questionnaireOptions = useMemo(
     () =>
-      data?.questionnaireTemperatures.map((questionnaire) => ({
+      safeData.questionnaireTemperatures.map((questionnaire) => ({
         id: questionnaire.questionnaireId,
         name: questionnaire.questionnaireName
       })) ?? [],
-    [data]
+    [safeData.questionnaireTemperatures]
   );
 
   if (error) {
@@ -77,24 +99,24 @@ export function PreSalesDashboardPage() {
       />
 
       <PreSalesKpiCards
-        metrics={data.preSalesMetrics}
-        meetingQuality={data.meetingQuality}
-        meetingQualitySQL={data.meetingQualitySQL}
-        questionnaireTemperatures={data.questionnaireTemperatures}
+        metrics={safeData.preSalesMetrics}
+        meetingQuality={safeData.meetingQuality}
+        meetingQualitySQL={safeData.meetingQualitySQL}
+        questionnaireTemperatures={safeData.questionnaireTemperatures}
       />
 
-      <PreSalesSection metrics={data.preSalesMetrics} production={data.preSalesProduction} />
+      <PreSalesSection metrics={safeData.preSalesMetrics} production={safeData.preSalesProduction} />
 
-      <FunnelSection harvest={data.harvest} funnelActivity={data.funnelActivity} />
+      <FunnelSection harvest={safeData.harvest} funnelActivity={safeData.funnelActivity} />
 
       <QualitySection
-        callFeedbacks={data.callFeedbacksSent}
-        callFeedbackRequests={data.callFeedbackRequests}
-        meetingQuality={data.meetingQuality}
-        meetingQualitySQL={data.meetingQualitySQL}
+        callFeedbacks={safeData.callFeedbacksSent}
+        callFeedbackRequests={safeData.callFeedbackRequests}
+        meetingQuality={safeData.meetingQuality}
+        meetingQualitySQL={safeData.meetingQualitySQL}
       />
 
-      <VelocitySection averageTime={data.averageTime} />
+      <VelocitySection averageTime={safeData.averageTime} />
     </main>
   );
 }

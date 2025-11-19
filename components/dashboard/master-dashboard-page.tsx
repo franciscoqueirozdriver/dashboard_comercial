@@ -22,26 +22,52 @@ export function MasterDashboardPage() {
   const [filters, setFilters] = useState<DashboardFilters>(initialFilters);
   const { data, error, isLoading } = useSpotterAnalytics(filters);
 
+  const safeData = useMemo(
+    () => ({
+      funnelActivity: data?.funnelActivity ?? [],
+      harvest: data?.harvest ?? [],
+      sellerPerformance: data?.sellerPerformance ?? [],
+      preSalesPerformance: data?.preSalesPerformance ?? [],
+      preSalesMetrics: data?.preSalesMetrics ?? [],
+      sellersMetrics: data?.sellersMetrics ?? [],
+      preSalesProduction: data?.preSalesProduction ?? [],
+      sellersProduction: data?.sellersProduction ?? [],
+      callFeedbacksSent: data?.callFeedbacksSent ?? [],
+      callFeedbackRequests: data?.callFeedbackRequests ?? [],
+      meetingQuality: data?.meetingQuality ?? null,
+      meetingQualitySQL: data?.meetingQualitySQL ?? null,
+      monthlyDealForecast: data?.monthlyDealForecast ?? [],
+      businessForecastByQualificationCount: data?.businessForecastByQualificationCount ?? [],
+      businessForecastByQualificationValue: data?.businessForecastByQualificationValue ?? [],
+      questionnaireTemperatures: data?.questionnaireTemperatures ?? [],
+      averageTime: data?.averageTime ?? null
+    }),
+    [data]
+  );
+
   const collaboratorOptions = useMemo(() => {
     if (!data) {
       return [];
     }
     const names = [
-      ...data.preSalesMetrics.map((metric) => metric.userName),
-      ...data.sellersMetrics.map((metric) => metric.userName)
+      ...safeData.preSalesMetrics.map((metric) => metric.userName),
+      ...safeData.sellersMetrics.map((metric) => metric.userName)
     ];
     return Array.from(new Set(names));
-  }, [data]);
+  }, [data, safeData.preSalesMetrics, safeData.sellersMetrics]);
 
-  const originOptions = useMemo(() => data?.averageTime?.list.map((item) => item.name) ?? [], [data]);
+  const originOptions = useMemo(
+    () => safeData.averageTime?.list.map((item) => item.name) ?? [],
+    [safeData.averageTime]
+  );
 
   const questionnaireOptions = useMemo(
     () =>
-      data?.questionnaireTemperatures.map((questionnaire) => ({
+      safeData.questionnaireTemperatures.map((questionnaire) => ({
         id: questionnaire.questionnaireId,
         name: questionnaire.questionnaireName
       })) ?? [],
-    [data]
+    [safeData.questionnaireTemperatures]
   );
 
   if (error) {
@@ -93,36 +119,36 @@ export function MasterDashboardPage() {
       />
 
       <KpiCards
-        meetingQuality={data.meetingQuality}
-        meetingQualitySQL={data.meetingQualitySQL}
-        preSalesMetrics={data.preSalesMetrics}
-        sellersMetrics={data.sellersMetrics}
-        harvest={data.harvest}
-        monthlyDealForecast={data.monthlyDealForecast}
+        meetingQuality={safeData.meetingQuality}
+        meetingQualitySQL={safeData.meetingQualitySQL}
+        preSalesMetrics={safeData.preSalesMetrics}
+        sellersMetrics={safeData.sellersMetrics}
+        harvest={safeData.harvest}
+        monthlyDealForecast={safeData.monthlyDealForecast}
       />
 
-      <FunnelSection harvest={data.harvest} funnelActivity={data.funnelActivity} />
+      <FunnelSection harvest={safeData.harvest} funnelActivity={safeData.funnelActivity} />
 
-      <PreSalesSection metrics={data.preSalesMetrics} production={data.preSalesProduction} />
+      <PreSalesSection metrics={safeData.preSalesMetrics} production={safeData.preSalesProduction} />
 
-      <SellersSection metrics={data.sellersMetrics} production={data.sellersProduction} />
+      <SellersSection metrics={safeData.sellersMetrics} production={safeData.sellersProduction} />
 
       <QualitySection
-        callFeedbacks={data.callFeedbacksSent}
-        callFeedbackRequests={data.callFeedbackRequests}
-        meetingQuality={data.meetingQuality}
-        meetingQualitySQL={data.meetingQualitySQL}
+        callFeedbacks={safeData.callFeedbacksSent}
+        callFeedbackRequests={safeData.callFeedbackRequests}
+        meetingQuality={safeData.meetingQuality}
+        meetingQualitySQL={safeData.meetingQualitySQL}
       />
 
       <ForecastSection
-        monthlyDealForecast={data.monthlyDealForecast}
-        qualificationCount={data.businessForecastByQualificationCount}
-        qualificationValue={data.businessForecastByQualificationValue}
+        monthlyDealForecast={safeData.monthlyDealForecast}
+        qualificationCount={safeData.businessForecastByQualificationCount}
+        qualificationValue={safeData.businessForecastByQualificationValue}
       />
 
-      <TemperatureSection questionnaireTemperatures={data.questionnaireTemperatures} />
+      <TemperatureSection questionnaireTemperatures={safeData.questionnaireTemperatures} />
 
-      <VelocitySection averageTime={data.averageTime} />
+      <VelocitySection averageTime={safeData.averageTime} />
     </main>
   );
 }
