@@ -21,9 +21,13 @@ const fetcher = async (url: string): Promise<SpotterAnalyticsDTO> => {
   const response = await fetch(url);
   const json = (await response.json()) as SpotterAnalyticsDTO | SpotterErrorResponse;
 
-  if (!response.ok || 'error' in json) {
+  if (!response.ok) {
     const message = 'error' in json ? json.details ?? json.error : `Spotter API error (${response.status})`;
     throw new Error(message);
+  }
+
+  if ('error' in json) {
+    throw new Error(json.details ?? json.error);
   }
 
   return json;

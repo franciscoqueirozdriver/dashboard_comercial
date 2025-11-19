@@ -27,12 +27,13 @@ export function TemperatureSection({ questionnaireTemperatures }: TemperatureSec
 
   const cardsData = useMemo(() => {
     return safeQuestionnaireTemperatures.map((questionnaire) => {
-      const total = questionnaire.temperatures.reduce((acc, item) => acc + item.quantity, 0);
-      const weighted = questionnaire.temperatures.reduce((acc, item) => acc + item.rating * item.quantity, 0);
+      const temperatures = questionnaire.temperatures ?? [];
+      const total = temperatures.reduce((acc, item) => acc + item.quantity, 0);
+      const weighted = temperatures.reduce((acc, item) => acc + item.rating * item.quantity, 0);
       const score = total === 0 ? 0 : weighted / total;
-      const hottest = questionnaire.temperatures.reduce(
+      const hottest = temperatures.reduce(
         (prev, curr) => (curr.rating > prev.rating ? curr : prev),
-        questionnaire.temperatures[0] ?? { qualification: 'N/A', rating: 0, quantity: 0 }
+        temperatures[0] ?? { qualification: 'N/A', rating: 0, quantity: 0 }
       );
       return {
         id: questionnaire.questionnaireId,
