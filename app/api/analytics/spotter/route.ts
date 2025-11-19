@@ -144,8 +144,21 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(payload);
   } catch (error) {
-    console.error('Spotter API error', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    if (message.includes('TokenRequired')) {
+      console.error(
+        'Spotter API error: TokenRequired – verifique EXACT_SPOTTER_TOKEN e o header usado',
+        error
+      );
+      return NextResponse.json(
+        {
+          error: 'Falha na autenticação com a Spotter'
+        },
+        { status: 500 }
+      );
+    }
+
+    console.error('Spotter API error', error);
     return NextResponse.json(
       {
         error: 'Spotter API error',

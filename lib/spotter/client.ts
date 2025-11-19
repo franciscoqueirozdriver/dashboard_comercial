@@ -32,6 +32,30 @@ function buildBaseUrl() {
   return `${sanitizedBaseUrl}/`;
 }
 
+function isTokenRequiredError(payload: unknown): boolean {
+  if (!payload) {
+    return false;
+  }
+
+  if (typeof payload === 'string') {
+    return payload.includes('TokenRequired');
+  }
+
+  if (typeof payload === 'object') {
+    const value = payload as Record<string, unknown>;
+    const errorValue = value.error;
+    const messageValue = value.message;
+    if (typeof errorValue === 'string' && errorValue.includes('TokenRequired')) {
+      return true;
+    }
+    if (typeof messageValue === 'string' && messageValue.includes('TokenRequired')) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams): Promise<T> {
   const baseWithTrailingSlash = buildBaseUrl();
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
@@ -47,25 +71,46 @@ async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams):
 
   const response = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${process.env.EXACT_SPOTTER_TOKEN ?? ''}`,
+      Token: process.env.EXACT_SPOTTER_TOKEN ?? '',
       'Content-Type': 'application/json'
     },
     cache: 'no-store'
   });
 
   if (!response.ok) {
-    let errorBody: unknown;
+    let parsedBody: unknown = null;
+    let rawBody: string | null = null;
     try {
-      errorBody = await response.json();
-    } catch {
-      errorBody = await response.text();
+      rawBody = await response.text();
+      try {
+        parsedBody = JSON.parse(rawBody);
+      } catch {
+        parsedBody = rawBody;
+      }
+    } catch (parseError) {
+      console.error('Spotter API error: unable to parse error response body', parseError);
     }
-    console.error('Spotter API error response:', {
+
+    const tokenRequired = isTokenRequiredError(parsedBody);
+    const logPayload = {
       status: response.status,
       statusText: response.statusText,
-      body: errorBody
-    });
-    throw new Error(`Spotter API error: ${response.status} ${response.statusText}`);
+      body: parsedBody ?? rawBody
+    };
+
+    if (tokenRequired) {
+      console.error(
+        'Spotter API error: TokenRequired – verifique EXACT_SPOTTER_TOKEN e o header usado',
+        logPayload
+      );
+    } else {
+      console.error('Spotter API error response:', logPayload);
+    }
+
+    const message = tokenRequired
+      ? 'Spotter API error: TokenRequired'
+      : `Spotter API error: ${response.status} ${response.statusText}`;
+    throw new Error(message);
   }
 
   const json = (await response.json()) as { value: T };
