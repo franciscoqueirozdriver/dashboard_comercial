@@ -39,16 +39,20 @@ export function ForecastSection({
   qualificationCount,
   qualificationValue
 }: ForecastSectionProps) {
+  const safeMonthlyDealForecast = monthlyDealForecast ?? [];
+  const safeQualificationCount = qualificationCount ?? [];
+  const safeQualificationValue = qualificationValue ?? [];
+
   const timelineData = useMemo(() => {
     const months = new Set<string>();
-    monthlyDealForecast.forEach((item) => {
+    safeMonthlyDealForecast.forEach((item) => {
       item.monthlyForecasts.forEach((forecast) => months.add(forecast.periodName));
     });
 
     return Array.from(months)
       .sort((a, b) => a.localeCompare(b))
       .map((month) => {
-        const total = monthlyDealForecast.reduce((acc, seller) => {
+        const total = safeMonthlyDealForecast.reduce((acc, seller) => {
           const monthValue = seller.monthlyForecasts.find((value) => value.periodName === month);
           if (!monthValue) return acc;
           const parsed = parseCurrencyBRLToNumber(monthValue.forecastValue) ?? 0;
@@ -56,18 +60,18 @@ export function ForecastSection({
         }, 0);
         return { month, total };
       });
-  }, [monthlyDealForecast]);
+  }, [safeMonthlyDealForecast]);
 
   const perSellerData = useMemo(() => {
-    return monthlyDealForecast.map((item) => ({
+    return safeMonthlyDealForecast.map((item) => ({
       name: item.userName,
       value: item.monthlyForecasts.reduce((acc, forecast) => acc + (parseCurrencyBRLToNumber(forecast.forecastValue) ?? 0), 0)
     }));
-  }, [monthlyDealForecast]);
+  }, [safeMonthlyDealForecast]);
 
   const qualificationData = useMemo(() => {
-    return summarizeQualificationCounts(qualificationCount, qualificationValue);
-  }, [qualificationCount, qualificationValue]);
+    return summarizeQualificationCounts(safeQualificationCount, safeQualificationValue);
+  }, [safeQualificationCount, safeQualificationValue]);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">

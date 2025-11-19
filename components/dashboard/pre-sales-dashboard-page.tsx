@@ -39,18 +39,18 @@ export function PreSalesDashboardPage() {
     () => safeData.preSalesMetrics.map((metric) => metric.userName),
     [safeData.preSalesMetrics]
   );
-  const originOptions = useMemo(
-    () => safeData.averageTime?.list.map((item) => item.name) ?? [],
-    [safeData.averageTime]
-  );
-  const questionnaireOptions = useMemo(
-    () =>
-      safeData.questionnaireTemperatures.map((questionnaire) => ({
-        id: questionnaire.questionnaireId,
-        name: questionnaire.questionnaireName
-      })) ?? [],
-    [safeData.questionnaireTemperatures]
-  );
+  const originOptions = useMemo(() => {
+    const list = safeData.averageTime?.list ?? [];
+    return list.map((item) => item.name);
+  }, [safeData.averageTime]);
+
+  const questionnaireOptions = useMemo(() => {
+    const temperatures = safeData.questionnaireTemperatures ?? [];
+    return temperatures.map((questionnaire) => ({
+      id: questionnaire.questionnaireId,
+      name: questionnaire.questionnaireName
+    }));
+  }, [safeData.questionnaireTemperatures]);
 
   if (error) {
     return (

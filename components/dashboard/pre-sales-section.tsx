@@ -39,9 +39,12 @@ type PreSalesSectionProps = {
 };
 
 export function PreSalesSection({ metrics, production }: PreSalesSectionProps) {
+  const safeMetrics = metrics ?? [];
+  const safeProduction = production ?? [];
+
   const chartData = useMemo(
     () =>
-      metrics.map((metric) => ({
+      safeMetrics.map((metric) => ({
         name: metric.userName,
         answeredCalls: metric.answeredCalls,
         scheduledMeetings: metric.scheduledMeetings,
@@ -49,23 +52,23 @@ export function PreSalesSection({ metrics, production }: PreSalesSectionProps) {
         sales: metric.sales,
         recoveryRegistration: metric.recoveryRegistration
       })),
-    [metrics]
+    [safeMetrics]
   );
 
   const radarData = useMemo(() => {
     return metricKeys.map((metric) => ({
       metric: metric.label,
       value:
-        metrics.reduce((acc, item) => acc + item[metric.key], 0) / Math.max(metrics.length, 1)
+        safeMetrics.reduce((acc, item) => acc + item[metric.key], 0) / Math.max(safeMetrics.length, 1)
     }));
-  }, [metrics]);
+  }, [safeMetrics]);
 
   const productionHeatmap = useMemo(() => {
-    return production.map((item) => ({
+    return safeProduction.map((item) => ({
       name: item.name,
       steps: item.steps
     }));
-  }, [production]);
+  }, [safeProduction]);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -117,7 +120,7 @@ export function PreSalesSection({ metrics, production }: PreSalesSectionProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-900 text-sm">
-              {metrics.map((metric) => (
+              {safeMetrics.map((metric) => (
                 <tr key={metric.id}>
                   <td className="py-2 font-medium text-white">{metric.userName}</td>
                   {metricKeys.map((key) => (

@@ -12,8 +12,10 @@ type TemperatureSectionProps = {
 };
 
 export function TemperatureSection({ questionnaireTemperatures }: TemperatureSectionProps) {
+  const safeQuestionnaireTemperatures = questionnaireTemperatures ?? [];
+
   const chartData = useMemo(() => {
-    return questionnaireTemperatures.map((questionnaire) => {
+    return safeQuestionnaireTemperatures.map((questionnaire) => {
       const entry: Record<string, number | string> = { name: questionnaire.questionnaireName };
       categories.forEach((category) => {
         const found = questionnaire.temperatures.find((temperature) => temperature.qualification === category);
@@ -21,10 +23,10 @@ export function TemperatureSection({ questionnaireTemperatures }: TemperatureSec
       });
       return entry;
     });
-  }, [questionnaireTemperatures]);
+  }, [safeQuestionnaireTemperatures]);
 
   const cardsData = useMemo(() => {
-    return questionnaireTemperatures.map((questionnaire) => {
+    return safeQuestionnaireTemperatures.map((questionnaire) => {
       const total = questionnaire.temperatures.reduce((acc, item) => acc + item.quantity, 0);
       const weighted = questionnaire.temperatures.reduce((acc, item) => acc + item.rating * item.quantity, 0);
       const score = total === 0 ? 0 : weighted / total;
@@ -40,7 +42,7 @@ export function TemperatureSection({ questionnaireTemperatures }: TemperatureSec
         total
       };
     });
-  }, [questionnaireTemperatures]);
+  }, [safeQuestionnaireTemperatures]);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">

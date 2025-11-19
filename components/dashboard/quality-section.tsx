@@ -36,9 +36,12 @@ export function QualitySection({
   meetingQuality,
   meetingQualitySQL
 }: QualitySectionProps) {
+  const safeCallFeedbacks = callFeedbacks ?? [];
+  const safeCallFeedbackRequests = callFeedbackRequests ?? [];
+
   const averageByUser = useMemo(() => {
     const aggregates: Record<string, { total: number; count: number }> = {};
-    callFeedbacks.forEach((feedback) => {
+    safeCallFeedbacks.forEach((feedback) => {
       if (!aggregates[feedback.userName]) {
         aggregates[feedback.userName] = { total: 0, count: 0 };
       }
@@ -49,17 +52,17 @@ export function QualitySection({
       userName,
       score: data.total / data.count
     }));
-  }, [callFeedbacks]);
+  }, [safeCallFeedbacks]);
 
   const criteriaDistribution = useMemo(() => {
     const result: Record<string, number> = {};
-    callFeedbacks.forEach((feedback) => {
+    safeCallFeedbacks.forEach((feedback) => {
       feedback.criteria.forEach((criterion) => {
         result[criterion.description] = (result[criterion.description] ?? 0) + criterion.starCount;
       });
     });
     return Object.entries(result).map(([criterion, value]) => ({ criterion, value }));
-  }, [callFeedbacks]);
+  }, [safeCallFeedbacks]);
 
   const meetingQualityData = useMemo(() => {
     return meetingQuality?.quantities ?? [];
@@ -142,7 +145,7 @@ export function QualitySection({
 
       <Card title="Pendências" description="Feedbacks de chamadas ainda aguardando resposta.">
         <ul className="space-y-4">
-          {callFeedbackRequests.map((request) => (
+          {safeCallFeedbackRequests.map((request) => (
             <li key={request.id} className="rounded-xl border border-slate-800/60 p-4">
               <div className="flex items-center justify-between text-sm text-slate-400">
                 <span>{request.lead}</span>

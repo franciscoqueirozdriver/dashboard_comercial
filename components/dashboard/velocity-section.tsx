@@ -19,10 +19,8 @@ type VelocitySectionProps = {
 
 export function VelocitySection({ averageTime }: VelocitySectionProps) {
   const originData = useMemo(() => {
-    if (!averageTime) {
-      return [];
-    }
-    return averageTime.list.map((origin) => ({
+    const list = averageTime?.list ?? [];
+    return list.map((origin) => ({
       name: origin.name,
       call: averageTimeInHours(origin.call),
       scheduling: averageTimeInHours(origin.scheduling),

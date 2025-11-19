@@ -39,10 +39,10 @@ export function SalesDashboardPage() {
     () => safeData.sellersMetrics.map((metric) => metric.userName),
     [safeData.sellersMetrics]
   );
-  const originOptions = useMemo(
-    () => safeData.averageTime?.list.map((item) => item.name) ?? [],
-    [safeData.averageTime]
-  );
+  const originOptions = useMemo(() => {
+    const list = safeData.averageTime?.list ?? [];
+    return list.map((item) => item.name);
+  }, [safeData.averageTime]);
 
   if (error) {
     return (
