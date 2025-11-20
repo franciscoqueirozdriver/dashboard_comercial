@@ -83,9 +83,31 @@ export function ForecastSection({
     }));
   }, [safeMonthlyDealForecast]);
 
-  const qualificationData = useMemo(() => {
-    return summarizeQualificationCounts(qualificationCount, qualificationValue);
-  }, [qualificationCount, qualificationValue]);
+  const qualificationSummary = useMemo(
+    () => summarizeQualificationCounts(qualificationCount, qualificationValue),
+    [qualificationCount, qualificationValue]
+  );
+
+  const qualificationData = useMemo(
+    () => [
+      {
+        key: 'Muito Quente',
+        count: qualificationSummary.veryHotCount,
+        value: qualificationSummary.veryHotValue
+      },
+      {
+        key: 'Congelada',
+        count: qualificationSummary.frozenCount,
+        value: 0
+      },
+      {
+        key: 'Total',
+        count: qualificationSummary.totalCount,
+        value: qualificationSummary.totalValue
+      }
+    ],
+    [qualificationSummary]
+  );
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
