@@ -25,11 +25,8 @@ type PreSalesKpiCardsProps = {
 const percentage = new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 1 });
 
 export function PreSalesKpiCards({ metrics, meetingQuality, meetingQualitySQL, questionnaireTemperatures }: PreSalesKpiCardsProps) {
-  const safeMetrics = metrics ?? [];
-  const safeQuestionnaireTemperatures = questionnaireTemperatures ?? [];
-
   const kpis = useMemo(() => {
-    const totals = safeMetrics.reduce(
+    const totals = metrics.reduce(
       (acc, item) => {
         acc.totalCalls += item.totalCalls;
         acc.answeredCalls += item.answeredCalls;
@@ -41,10 +38,10 @@ export function PreSalesKpiCards({ metrics, meetingQuality, meetingQualitySQL, q
       { totalCalls: 0, answeredCalls: 0, scheduledMeetings: 0, completedMeetings: 0, sales: 0 }
     );
 
-    const connectionRate = calculateConnectionRate(safeMetrics) / 100;
+    const connectionRate = calculateConnectionRate(metrics) / 100;
     const meetingScore = calculateMeetingQualityScore(meetingQuality);
     const rejectionRate = calculateRejectionRate(meetingQualitySQL) / 100;
-    const temperature = calculateAverageTemperatureScore(safeQuestionnaireTemperatures);
+    const temperature = calculateAverageTemperatureScore(questionnaireTemperatures);
 
     return [
       {
@@ -78,7 +75,7 @@ export function PreSalesKpiCards({ metrics, meetingQuality, meetingQualitySQL, q
         sublabel: 'Conversões vindas da pré-venda'
       }
     ];
-  }, [meetingQuality, meetingQualitySQL, safeMetrics, safeQuestionnaireTemperatures]);
+  }, [meetingQuality, meetingQualitySQL, metrics, questionnaireTemperatures]);
 
   return (
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

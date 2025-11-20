@@ -47,13 +47,8 @@ export function SalesKpiCards({
   qualificationValues: BusinessForecastByQualificationValueItem[];
   averageTime: AverageTimeAggregate | null;
 }) {
-  const safeSellersMetrics = sellersMetrics ?? [];
-  const safeSellerPerformance = sellerPerformance ?? [];
-  const safeMonthlyDealForecast = monthlyDealForecast ?? [];
-  const safeQualificationValues = qualificationValues ?? [];
-
   const kpis = useMemo(() => {
-    const totals = safeSellersMetrics.reduce(
+    const totals = sellersMetrics.reduce(
       (acc, item) => {
         acc.sales += item.sales;
         acc.scheduled += item.scheduledMeetings;
@@ -64,11 +59,11 @@ export function SalesKpiCards({
       { sales: 0, scheduled: 0, completed: 0, sql: 0 }
     );
 
-    const salesValue = calculateSalesActualValue(safeSellerPerformance);
-    const forecastTotal = aggregateForecastTotal(safeMonthlyDealForecast);
-    const veryHotValue = extractVeryHotValue(safeQualificationValues);
+    const salesValue = calculateSalesActualValue(sellerPerformance);
+    const forecastTotal = aggregateForecastTotal(monthlyDealForecast);
+    const veryHotValue = extractVeryHotValue(qualificationValues);
     const showRate = totals.scheduled === 0 ? 0 : totals.completed / totals.scheduled;
-    const sqlToSale = calculateSqlToSaleConversion(safeSellersMetrics) / 100;
+    const sqlToSale = calculateSqlToSaleConversion(sellersMetrics) / 100;
     const rejectionRate = calculateRejectionRate(meetingQualitySQL) / 100;
     const avgSaleHours = averageTimeToSaleHours(averageTime);
 
@@ -104,7 +99,7 @@ export function SalesKpiCards({
         sublabel: `Rejeição de SQL ${percent.format(rejectionRate)}`
       }
     ];
-  }, [averageTime, meetingQualitySQL, safeMonthlyDealForecast, safeQualificationValues, safeSellerPerformance, safeSellersMetrics]);
+  }, [averageTime, meetingQualitySQL, monthlyDealForecast, qualificationValues, sellerPerformance, sellersMetrics]);
 
   return (
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

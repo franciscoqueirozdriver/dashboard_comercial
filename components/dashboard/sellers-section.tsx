@@ -20,11 +20,8 @@ type SellersSectionProps = {
 };
 
 export function SellersSection({ metrics, production }: SellersSectionProps) {
-  const safeMetrics = metrics ?? [];
-  const safeProduction = production ?? [];
-
   const ranking = useMemo(() => {
-    return safeMetrics
+    return metrics
       .map((metric) => ({
         id: metric.id,
         userName: metric.userName,
@@ -33,15 +30,15 @@ export function SellersSection({ metrics, production }: SellersSectionProps) {
         showRate: calculatePercentage(metric.completedMeetings, metric.scheduledMeetings)
       }))
       .sort((a, b) => b.sales - a.sales);
-  }, [safeMetrics]);
+  }, [metrics]);
 
   const productionData = useMemo(() => {
-    return safeProduction.map((item) => ({
+    return production.map((item) => ({
       name: item.name,
       total: item.steps.reduce((acc, step) => acc + step.value, 0),
       stepValues: item.steps
     }));
-  }, [safeProduction]);
+  }, [production]);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -70,7 +67,7 @@ export function SellersSection({ metrics, production }: SellersSectionProps) {
         </div>
         <div className="mt-6 h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={safeMetrics}>
+            <BarChart data={metrics}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
               <XAxis dataKey="userName" stroke="#94a3b8" />
               <YAxis stroke="#94a3b8" />

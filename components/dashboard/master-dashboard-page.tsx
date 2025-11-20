@@ -56,18 +56,19 @@ export function MasterDashboardPage() {
     return Array.from(new Set(names));
   }, [data, safeData.preSalesMetrics, safeData.sellersMetrics]);
 
-  const originOptions = useMemo(() => {
-    const list = safeData.averageTime?.list ?? [];
-    return list.map((item) => item.name);
-  }, [safeData.averageTime]);
+  const originOptions = useMemo(
+    () => safeData.averageTime?.list.map((item) => item.name) ?? [],
+    [safeData.averageTime]
+  );
 
-  const questionnaireOptions = useMemo(() => {
-    const temperatures = safeData.questionnaireTemperatures ?? [];
-    return temperatures.map((questionnaire) => ({
-      id: questionnaire.questionnaireId,
-      name: questionnaire.questionnaireName
-    }));
-  }, [safeData.questionnaireTemperatures]);
+  const questionnaireOptions = useMemo(
+    () =>
+      safeData.questionnaireTemperatures.map((questionnaire) => ({
+        id: questionnaire.questionnaireId,
+        name: questionnaire.questionnaireName
+      })) ?? [],
+    [safeData.questionnaireTemperatures]
+  );
 
   if (error) {
     return (

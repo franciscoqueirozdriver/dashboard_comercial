@@ -12,10 +12,8 @@ type TemperatureSectionProps = {
 };
 
 export function TemperatureSection({ questionnaireTemperatures }: TemperatureSectionProps) {
-  const safeQuestionnaireTemperatures = questionnaireTemperatures ?? [];
-
   const chartData = useMemo(() => {
-    return safeQuestionnaireTemperatures.map((questionnaire) => {
+    return questionnaireTemperatures.map((questionnaire) => {
       const entry: Record<string, number | string> = { name: questionnaire.questionnaireName };
       categories.forEach((category) => {
         const found = questionnaire.temperatures.find((temperature) => temperature.qualification === category);
@@ -23,17 +21,16 @@ export function TemperatureSection({ questionnaireTemperatures }: TemperatureSec
       });
       return entry;
     });
-  }, [safeQuestionnaireTemperatures]);
+  }, [questionnaireTemperatures]);
 
   const cardsData = useMemo(() => {
-    return safeQuestionnaireTemperatures.map((questionnaire) => {
-      const temperatures = questionnaire.temperatures ?? [];
-      const total = temperatures.reduce((acc, item) => acc + item.quantity, 0);
-      const weighted = temperatures.reduce((acc, item) => acc + item.rating * item.quantity, 0);
+    return questionnaireTemperatures.map((questionnaire) => {
+      const total = questionnaire.temperatures.reduce((acc, item) => acc + item.quantity, 0);
+      const weighted = questionnaire.temperatures.reduce((acc, item) => acc + item.rating * item.quantity, 0);
       const score = total === 0 ? 0 : weighted / total;
-      const hottest = temperatures.reduce(
+      const hottest = questionnaire.temperatures.reduce(
         (prev, curr) => (curr.rating > prev.rating ? curr : prev),
-        temperatures[0] ?? { qualification: 'N/A', rating: 0, quantity: 0 }
+        questionnaire.temperatures[0] ?? { qualification: 'N/A', rating: 0, quantity: 0 }
       );
       return {
         id: questionnaire.questionnaireId,
@@ -43,7 +40,7 @@ export function TemperatureSection({ questionnaireTemperatures }: TemperatureSec
         total
       };
     });
-  }, [safeQuestionnaireTemperatures]);
+  }, [questionnaireTemperatures]);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">

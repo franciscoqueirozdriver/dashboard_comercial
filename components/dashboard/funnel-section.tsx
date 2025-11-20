@@ -22,12 +22,9 @@ type FunnelSectionProps = {
 };
 
 export function FunnelSection({ harvest, funnelActivity }: FunnelSectionProps) {
-  const safeHarvest = harvest ?? [];
-  const safeFunnelActivity = funnelActivity ?? [];
-
   const harvestData = useMemo(
     () =>
-      safeHarvest.map((item) => ({
+      harvest.map((item) => ({
         name: item.name,
         total: item.total,
         converted: item.converted ?? 0,
@@ -36,18 +33,18 @@ export function FunnelSection({ harvest, funnelActivity }: FunnelSectionProps) {
         restarted: item.restarted ?? 0,
         conversionRate: item.conversionRate ?? 0
       })),
-    [safeHarvest]
+    [harvest]
   );
 
   const insights = useMemo(() => {
-    return safeHarvest
+    return harvest
       .map((item) => ({
         name: item.name,
         conversion: item.conversionRate ?? 0,
         dropped: (item.discarded ?? 0) + (item.parked ?? 0)
       }))
       .sort((a, b) => a.conversion - b.conversion);
-  }, [safeHarvest]);
+  }, [harvest]);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -102,7 +99,7 @@ export function FunnelSection({ harvest, funnelActivity }: FunnelSectionProps) {
 
       <Card title="Atividade por Questionário" description="Etapas com maior conversão ou queda.">
         <ul className="space-y-4">
-          {safeFunnelActivity.map((activity) => (
+          {funnelActivity.map((activity) => (
             <li key={activity.id} className="rounded-xl border border-slate-800/50 p-4">
               <div className="flex items-center justify-between text-sm text-slate-400">
                 <span>{activity.name}</span>
