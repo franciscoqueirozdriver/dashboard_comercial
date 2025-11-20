@@ -119,7 +119,7 @@ export function aggregateForecastTotal(items: MonthlyDealForecastItem[]): number
     const forecasts = toArray(item.monthlyForecasts);
 
     const forecastValue = forecasts.reduce((innerAcc, forecast) => {
-      const parsedValue = parseCurrencyBRLToNumber(forecast.forecastValue);
+      const parsedValue = parseCurrencyBRLToNumber(forecast.forecastValue) ?? 0;
       return innerAcc + parsedValue;
     }, 0);
 
@@ -184,7 +184,7 @@ export function summarizeQualificationCounts(
     const qualifications = toArray(item.qualifications);
 
     qualifications.forEach((q) => {
-      const numericValue = parseCurrencyBRLToNumber(q.value ?? 'R$ 0,00');
+      const numericValue = parseCurrencyBRLToNumber(q.value ?? 'R$ 0,00') ?? 0;
 
       if (q.key === 'Very hot') {
         result.veryHotValue += numericValue;
@@ -288,7 +288,7 @@ export function calculateSalesActualValue(performance: SellerPerformanceItem[]) 
 
     const totalSellerValue = monthlyValues.reduce((innerAcc, month) => {
       const [actualValue] = month.value.split('/').map((v) => v.trim());
-      const parsedActual = parseCurrencyBRLToNumber(actualValue);
+      const parsedActual = parseCurrencyBRLToNumber(actualValue) ?? 0;
       return innerAcc + parsedActual;
     }, 0);
 
