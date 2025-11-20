@@ -18,13 +18,13 @@ export function filtersToQueryString(filters: DashboardFilters): string {
     datainicial: filters.startDate,
     datafinal: filters.endDate
   });
-  if (filters.collaborator) {
+  if (filters.collaborator && filters.collaborator !== 'all') {
     params.set('colaborador', filters.collaborator);
   }
-  if (filters.origin) {
+  if (filters.origin && filters.origin !== 'all') {
     params.set('origem', filters.origin);
   }
-  if (filters.questionnaireId) {
+  if (filters.questionnaireId && filters.questionnaireId !== 'all') {
     params.set('questionario', filters.questionnaireId);
   }
   return params.toString();

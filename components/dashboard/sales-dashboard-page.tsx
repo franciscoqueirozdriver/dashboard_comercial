@@ -19,13 +19,35 @@ export function SalesDashboardPage() {
   const [filters, setFilters] = useState<DashboardFilters>(initialFilters);
   const { data, error, isLoading } = useSpotterAnalytics(filters);
 
-  const collaboratorOptions = useMemo(() => data?.sellersMetrics.map((metric) => metric.userName) ?? [], [data]);
-  const originOptions = useMemo(() => data?.averageTime?.list.map((item) => item.name) ?? [], [data]);
+  const safeData = useMemo(
+    () => ({
+      funnelActivity: data?.funnelActivity ?? [],
+      harvest: data?.harvest ?? [],
+      sellerPerformance: data?.sellerPerformance ?? [],
+      sellersMetrics: data?.sellersMetrics ?? [],
+      sellersProduction: data?.sellersProduction ?? [],
+      meetingQualitySQL: data?.meetingQualitySQL ?? null,
+      monthlyDealForecast: data?.monthlyDealForecast ?? [],
+      businessForecastByQualificationCount: data?.businessForecastByQualificationCount ?? [],
+      businessForecastByQualificationValue: data?.businessForecastByQualificationValue ?? [],
+      averageTime: data?.averageTime ?? null
+    }),
+    [data]
+  );
+
+  const collaboratorOptions = useMemo(
+    () => safeData.sellersMetrics.map((metric) => metric.userName),
+    [safeData.sellersMetrics]
+  );
+  const originOptions = useMemo(
+    () => safeData.averageTime?.list.map((item) => item.name) ?? [],
+    [safeData.averageTime]
+  );
 
   if (error) {
     return (
       <div className="p-10 text-center text-red-300">
-        Não foi possível carregar o painel de vendas.
+        Não foi possível carregar os dados do Spotter. Tente novamente mais tarde.
       </div>
     );
   }
@@ -67,25 +89,25 @@ export function SalesDashboardPage() {
       />
 
       <SalesKpiCards
-        sellersMetrics={data.sellersMetrics}
-        sellerPerformance={data.sellerPerformance}
-        meetingQualitySQL={data.meetingQualitySQL}
-        monthlyDealForecast={data.monthlyDealForecast}
-        qualificationValues={data.businessForecastByQualificationValue}
-        averageTime={data.averageTime}
+        sellersMetrics={safeData.sellersMetrics}
+        sellerPerformance={safeData.sellerPerformance}
+        meetingQualitySQL={safeData.meetingQualitySQL}
+        monthlyDealForecast={safeData.monthlyDealForecast}
+        qualificationValues={safeData.businessForecastByQualificationValue}
+        averageTime={safeData.averageTime}
       />
 
-      <SellersSection metrics={data.sellersMetrics} production={data.sellersProduction} />
+      <SellersSection metrics={safeData.sellersMetrics} production={safeData.sellersProduction} />
 
-      <FunnelSection harvest={data.harvest} funnelActivity={data.funnelActivity} />
+      <FunnelSection harvest={safeData.harvest} funnelActivity={safeData.funnelActivity} />
 
       <ForecastSection
-        monthlyDealForecast={data.monthlyDealForecast}
-        qualificationCount={data.businessForecastByQualificationCount}
-        qualificationValue={data.businessForecastByQualificationValue}
+        monthlyDealForecast={safeData.monthlyDealForecast}
+        qualificationCount={safeData.businessForecastByQualificationCount}
+        qualificationValue={safeData.businessForecastByQualificationValue}
       />
 
-      <VelocitySection averageTime={data.averageTime} />
+      <VelocitySection averageTime={safeData.averageTime} />
     </main>
   );
 }

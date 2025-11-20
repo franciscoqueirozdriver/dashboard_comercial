@@ -20,9 +20,72 @@ import type {
 
 export type SpotterQueryParams = Record<string, string>;
 
+function buildBaseUrl() {
+  const rawBaseUrl = process.env.EXACT_SPOTTER_BASE_URL ?? 'https://api.exactspotter.com/v3';
+  const sanitizedBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+  const apiVersion = process.env.EXACT_SPOTTER_API_VERSION?.replace(/^\/+|\/+$/g, '');
+
+  if (apiVersion && !sanitizedBaseUrl.toLowerCase().endsWith(`/${apiVersion.toLowerCase()}`)) {
+    return `${sanitizedBaseUrl}/${apiVersion}/`;
+  }
+
+  return `${sanitizedBaseUrl}/`;
+}
+
+function isTokenRequiredError(payload: unknown): boolean {
+  if (!payload) {
+    return false;
+  }
+
+  if (typeof payload === 'string') {
+    return payload.includes('TokenRequired');
+  }
+
+  if (typeof payload === 'object') {
+    const value = payload as Record<string, unknown>;
+    const errorValue = value.error;
+    const messageValue = value.message;
+    if (typeof errorValue === 'string' && errorValue.includes('TokenRequired')) {
+      return true;
+    }
+    if (typeof messageValue === 'string' && messageValue.includes('TokenRequired')) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function extractErrorMessage(payload: unknown): string | null {
+  if (!payload) {
+    return null;
+  }
+
+  if (typeof payload === 'string') {
+    return payload;
+  }
+
+  if (typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+    if (typeof record.message === 'string') {
+      return record.message;
+    }
+    if (typeof record.error === 'string') {
+      return record.error;
+    }
+    if (typeof record.error === 'object' && record.error && 'message' in record.error) {
+      const nested = (record.error as Record<string, unknown>).message;
+      if (typeof nested === 'string') {
+        return nested;
+      }
+    }
+  }
+
+  return null;
+}
+
 async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams): Promise<T> {
-  const baseUrl = process.env.EXACT_SPOTTER_BASE_URL ?? 'https://api.exactspotter.com/v3';
-  const baseWithTrailingSlash = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const baseWithTrailingSlash = buildBaseUrl();
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
   const url = new URL(normalizedPath, baseWithTrailingSlash);
 
@@ -36,14 +99,47 @@ async function spotterFetch<T>(path: string, searchParams?: SpotterQueryParams):
 
   const response = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${process.env.EXACT_SPOTTER_TOKEN ?? ''}`,
+      token_exact: process.env.EXACT_SPOTTER_TOKEN ?? '',
       'Content-Type': 'application/json'
     },
     cache: 'no-store'
   });
 
   if (!response.ok) {
-    throw new Error(`Spotter API error: ${response.status} ${response.statusText}`);
+    let parsedBody: unknown = null;
+    let rawBody: string | null = null;
+    try {
+      rawBody = await response.text();
+      try {
+        parsedBody = JSON.parse(rawBody);
+      } catch {
+        parsedBody = rawBody;
+      }
+    } catch (parseError) {
+      console.error('Spotter API error: unable to parse error response body', parseError);
+    }
+
+    const tokenRequired = isTokenRequiredError(parsedBody);
+    const apiMessage = extractErrorMessage(parsedBody);
+    const logPayload = {
+      status: response.status,
+      statusText: response.statusText,
+      body: parsedBody ?? rawBody
+    };
+
+    if (tokenRequired) {
+      console.error(
+        'Spotter API error: TokenRequired – verifique EXACT_SPOTTER_TOKEN e o header token_exact',
+        logPayload
+      );
+    } else {
+      console.error('Spotter API error response:', logPayload);
+    }
+
+    const message = tokenRequired
+      ? 'Spotter API error: TokenRequired'
+      : `Spotter API error: ${response.status} ${response.statusText}${apiMessage ? ` - ${apiMessage}` : ''}`;
+    throw new Error(message);
   }
 
   const json = (await response.json()) as { value: T };

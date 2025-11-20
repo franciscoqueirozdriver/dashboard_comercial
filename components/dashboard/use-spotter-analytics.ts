@@ -4,6 +4,11 @@ import { useMemo } from 'react';
 import useSWR from 'swr';
 import type { SpotterAnalyticsDTO } from '@/lib/spotter/types';
 
+type SpotterErrorResponse = {
+  error: string;
+  details?: string;
+};
+
 export type DashboardFilters = {
   startDate: string;
   endDate: string;
@@ -12,16 +17,27 @@ export type DashboardFilters = {
   questionnaireId?: string;
 };
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json() as Promise<SpotterAnalyticsDTO>);
+const fetcher = async (url: string): Promise<SpotterAnalyticsDTO> => {
+  const response = await fetch(url);
+  const json = (await response.json()) as SpotterAnalyticsDTO | SpotterErrorResponse;
+
+  if (!response.ok || 'error' in json) {
+    const message = 'error' in json ? json.details ?? json.error : `Spotter API error (${response.status})`;
+    throw new Error(message);
+  }
+
+  return json;
+};
 
 export function getCurrentMonthFilters(): DashboardFilters {
   const today = new Date();
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const format = (date: Date) => date.toISOString().split('T')[0];
 
   return {
     startDate: format(startOfMonth),
-    endDate: format(today)
+    endDate: format(endOfMonth)
   };
 }
 
