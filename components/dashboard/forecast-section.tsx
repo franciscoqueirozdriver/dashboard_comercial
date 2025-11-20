@@ -67,7 +67,7 @@ export function ForecastSection({
       const safeForecasts = item.monthlyForecasts ?? [];
 
       const total = safeForecasts.reduce((acc, forecast) => {
-        const parsedValue = parseCurrencyBRLToNumber(forecast.forecastValue);
+        const parsedValue = parseCurrencyBRLToNumber(forecast.forecastValue) ?? 0;
         return acc + parsedValue;
       }, 0);
 

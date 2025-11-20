@@ -302,3 +302,25 @@ export function averageTimeToSaleHours(averageTime: AverageTimeAggregate | null)
   }
   return averageTimeInHours(averageTime.totalSale);
 }
+
+
+export function calculateSqlToSaleConversion(
+  performance: SellersMetricsItem[]
+): number {
+  const safePerformance = toArray(performance);
+
+  if (!safePerformance.length) return 0;
+
+  const totals = safePerformance.reduce(
+    (acc, curr) => {
+      acc.sql += curr.sql ?? 0;
+      acc.sales += curr.sales ?? 0;
+      return acc;
+    },
+    { sql: 0, sales: 0 }
+  );
+
+  if (!totals.sql) return 0;
+
+  return (totals.sales / totals.sql) * 100;
+}
