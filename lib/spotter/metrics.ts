@@ -14,6 +14,10 @@ import type {
 } from './types';
 import { parseCurrencyBRLToNumber } from './parsers';
 
+function toArray<T>(value: T[] | null | undefined): T[] {
+  return value ?? [];
+}
+
 type NumericInput = number | null | undefined;
 
 export function safeDivide(numerator: NumericInput, denominator: NumericInput): number {
@@ -41,95 +45,158 @@ export function calculateRejectionRate(sql: MeetingQualitySQLItem | null): numbe
 }
 
 export function calculateConnectionRate(metrics: PreSalesMetricsItem[]): number {
-  const totals = metrics.reduce(
-    (acc, metric) => {
-      acc.answered += metric.answeredCalls;
-      acc.total += metric.totalCalls;
+  const safeMetrics = toArray(metrics);
+
+  if (!safeMetrics.length) return 0;
+
+  const totals = safeMetrics.reduce(
+    (acc, curr) => {
+      acc.totalCalls += curr.totalCalls ?? 0;
+      acc.answeredCalls += curr.answeredCalls ?? 0;
       return acc;
     },
-    { answered: 0, total: 0 }
+    { totalCalls: 0, answeredCalls: 0 }
   );
 
-  return calculatePercentage(totals.answered, totals.total);
+  if (!totals.totalCalls) return 0;
+
+  return (totals.answeredCalls / totals.totalCalls) * 100;
 }
 
 export function calculateShowRate(
-  preSales: Pick<PreSalesMetricsItem, 'scheduledMeetings' | 'completedMeetings'>[],
-  sellers: Pick<SellersMetricsItem, 'scheduledMeetings' | 'completedMeetings'>[]
+  preSales: PreSalesMetricsItem[],
+  sellers: SellersMetricsItem[]
 ): number {
-  const totals = [...preSales, ...sellers].reduce(
-    (acc, metric) => {
-      acc.scheduled += metric.scheduledMeetings;
-      acc.completed += metric.completedMeetings;
+  const safePreSales = toArray(preSales);
+  const safeSellers = toArray(sellers);
+
+  const totals = [...safePreSales, ...safeSellers].reduce(
+    (acc, curr) => {
+      acc.expectedMeetings += curr.expectedMeetings ?? 0;
+      acc.completedMeetings += curr.completedMeetings ?? 0;
       return acc;
     },
-    { scheduled: 0, completed: 0 }
+    { expectedMeetings: 0, completedMeetings: 0 }
   );
 
-  return calculatePercentage(totals.completed, totals.scheduled);
+  if (!totals.expectedMeetings) return 0;
+
+  return (totals.completedMeetings / totals.expectedMeetings) * 100;
 }
 
-export function calculateMeetingQualityScore(meetingQuality: MeetingQualityItem | null): number {
-  if (!meetingQuality || meetingQuality.totalMeetings === 0) {
-    return 0;
-  }
+export function calculateMeetingQualityScore(
+  meetingQuality: MeetingQualityItem | null
+): number {
+  if (!meetingQuality) return 0;
 
-  const weighted = meetingQuality.quantities.reduce((acc, item) => acc + item.quantity * item.score, 0);
-  return safeDivide(weighted, meetingQuality.totalMeetings);
+  const quantities = toArray(meetingQuality.quantities);
+
+  if (!quantities.length) return 0;
+
+  const totals = quantities.reduce(
+    (acc, curr) => {
+      const quantity = curr.quantity ?? 0;
+      const score = curr.score ?? 0;
+
+      acc.weightedScore += quantity * score;
+      acc.totalMeetings += quantity;
+      return acc;
+    },
+    { weightedScore: 0, totalMeetings: 0 }
+  );
+
+  if (!totals.totalMeetings) return 0;
+
+  return totals.weightedScore / totals.totalMeetings;
 }
 
 export function aggregateForecastTotal(items: MonthlyDealForecastItem[]): number {
-  return items.reduce((acc, item) => {
-    const forecastValue = item.monthlyForecasts.reduce((innerAcc, forecast) => {
-      const parsed = parseCurrencyBRLToNumber(forecast.forecastValue);
-      return innerAcc + (parsed ?? 0);
+  const safeItems = toArray(items);
+
+  if (!safeItems.length) return 0;
+
+  return safeItems.reduce((acc, item) => {
+    const forecasts = toArray(item.monthlyForecasts);
+
+    const forecastValue = forecasts.reduce((innerAcc, forecast) => {
+      const parsedValue = parseCurrencyBRLToNumber(forecast.forecastValue) ?? 0;
+      return innerAcc + parsedValue;
     }, 0);
+
     return acc + forecastValue;
   }, 0);
 }
 
 export function calculateHealthScore(harvest: HarvestItem[]): number {
-  if (!harvest.length) {
-    return 0;
-  }
+  const safeHarvest = toArray(harvest);
 
-  const averageConversion = harvest.reduce((acc, item) => acc + (item.conversionRate ?? 0), 0) / harvest.length;
-  const penalties = harvest.reduce((acc, item) => acc + (item.discarded ?? 0) + (item.parked ?? 0), 0);
-  const normalizedPenalty = penalties / Math.max(harvest.length * 100, 1);
-  return Math.max(0, averageConversion - normalizedPenalty * 100);
+  if (!safeHarvest.length) return 0;
+
+  const averageConversion =
+    safeHarvest.reduce((acc, item) => {
+      const conversionRate = item.conversionRate ?? 0;
+      return acc + conversionRate;
+    }, 0) / safeHarvest.length;
+
+  return averageConversion;
 }
 
 export function summarizeQualificationCounts(
   counts: BusinessForecastByQualificationCountItem[],
   values: BusinessForecastByQualificationValueItem[]
-): { key: string; count: number; value: number }[] {
-  const result: Record<string, { key: string; count: number; value: number }> = {};
+) {
+  const safeCounts = toArray(counts);
+  const safeValues = toArray(values);
 
-  counts.forEach((item) => {
-    item.qualifications.forEach((qualification) => {
-      const count = Number.parseFloat(qualification.value);
-      if (!Number.isNaN(count)) {
-        result[qualification.key] = {
-          key: qualification.key,
-          count,
-          value: result[qualification.key]?.value ?? 0
-        };
+  const result: {
+    veryHotCount: number;
+    frozenCount: number;
+    totalCount: number;
+    veryHotValue: number;
+    totalValue: number;
+  } = {
+    veryHotCount: 0,
+    frozenCount: 0,
+    totalCount: 0,
+    veryHotValue: 0,
+    totalValue: 0,
+  };
+
+  safeCounts.forEach((item) => {
+    const qualifications = toArray(item.qualifications);
+
+    qualifications.forEach((q) => {
+      const value = Number(q.value ?? 0);
+
+      if (q.key === 'Very hot') {
+        result.veryHotCount += value;
+      } else if (q.key === 'Frozen') {
+        result.frozenCount += value;
+      }
+
+      if (q.key === 'Total') {
+        result.totalCount += value;
       }
     });
   });
 
-  values.forEach((item) => {
-    item.qualifications.forEach((qualification) => {
-      const parsed = parseCurrencyBRLToNumber(qualification.value) ?? 0;
-      result[qualification.key] = {
-        key: qualification.key,
-        count: result[qualification.key]?.count ?? 0,
-        value: parsed + (result[qualification.key]?.value ?? 0)
-      };
+  safeValues.forEach((item) => {
+    const qualifications = toArray(item.qualifications);
+
+    qualifications.forEach((q) => {
+      const numericValue = parseCurrencyBRLToNumber(q.value ?? 'R$ 0,00') ?? 0;
+
+      if (q.key === 'Very hot') {
+        result.veryHotValue += numericValue;
+      }
+
+      if (q.key === 'Total') {
+        result.totalValue += numericValue;
+      }
     });
   });
 
-  return Object.values(result);
+  return result;
 }
 
 export function averageTimeInHours(value: number | null): number {
@@ -148,44 +215,84 @@ export function buildLeadSpeedScore(origin: AverageTimeByOrigin): number {
   return Math.max(0, 100 - (total / maxReference) * 100);
 }
 
-export function calculateAverageTemperatureScore(questionnaires: QuestionnaireTemperature[]): number {
-  const accumulator = questionnaires.reduce(
-    (acc, questionnaire) => {
-      questionnaire.temperatures.forEach((temperature) => {
-        acc.totalQuantity += temperature.quantity;
-        acc.totalScore += temperature.quantity * temperature.rating;
-      });
-      return acc;
-    },
-    { totalQuantity: 0, totalScore: 0 }
-  );
+export function calculateAverageTemperatureScore(
+  questionnaires: QuestionnaireTemperature[]
+): number {
+  const safeQuestionnaires = toArray(questionnaires);
 
-  return accumulator.totalQuantity === 0 ? 0 : accumulator.totalScore / accumulator.totalQuantity;
+  if (!safeQuestionnaires.length) return 0;
+
+  let totalScore = 0;
+  let totalQuantity = 0;
+
+  safeQuestionnaires.forEach((questionnaire) => {
+    const temperatures = toArray(questionnaire.temperatures);
+
+    temperatures.forEach((temperature) => {
+      const quantity = temperature.quantity ?? 0;
+      const rating = temperature.rating ?? 0;
+
+      totalScore += quantity * rating;
+      totalQuantity += quantity;
+    });
+  });
+
+  if (!totalQuantity) return 0;
+
+  return totalScore / totalQuantity;
 }
 
-export function calculateSqlToSaleConversion(metrics: SellersMetricsItem[]): number {
-  const totals = metrics.reduce(
-    (acc, metric) => {
-      acc.sql += metric.sql;
-      acc.sales += metric.sales;
+export function calculatePreSalesRecoveryRate(
+  metrics: PreSalesMetricsItem[]
+): number {
+  const safeMetrics = toArray(metrics);
+
+  if (!safeMetrics.length) return 0;
+
+  const totals = safeMetrics.reduce(
+    (acc, curr) => {
+      acc.recoveryRegistration += curr.recoveryRegistration ?? 0;
+      acc.totalCalls += curr.totalCalls ?? 0;
       return acc;
     },
-    { sql: 0, sales: 0 }
+    { recoveryRegistration: 0, totalCalls: 0 }
   );
 
-  return calculatePercentage(totals.sales, totals.sql);
+  if (!totals.totalCalls) return 0;
+
+  return (totals.recoveryRegistration / totals.totalCalls) * 100;
 }
 
-export function calculateSalesActualValue(performance: SellerPerformanceItem[]): number {
-  return performance.reduce((acc, seller) => {
-    return (
-      acc +
-      seller.monthlyValues.reduce((innerAcc, monthly) => {
-        const [actual] = monthly.value.split('/');
-        const parsed = parseCurrencyBRLToNumber(actual?.trim() ?? '') ?? 0;
-        return innerAcc + parsed;
-      }, 0)
-    );
+export function calculateSellerPerformanceTotals(
+  performance: SellersMetricsItem[]
+) {
+  const safePerformance = toArray(performance);
+
+  return safePerformance.reduce(
+    (acc, curr) => {
+      acc.sales += curr.sales ?? 0;
+      acc.sql += curr.sql ?? 0;
+      acc.expectedMeetings += curr.expectedMeetings ?? 0;
+      acc.completedMeetings += curr.completedMeetings ?? 0;
+      return acc;
+    },
+    { sales: 0, sql: 0, expectedMeetings: 0, completedMeetings: 0 }
+  );
+}
+
+export function calculateSalesActualValue(performance: SellerPerformanceItem[]) {
+  const safePerformance = toArray(performance);
+
+  return safePerformance.reduce((acc, seller) => {
+    const monthlyValues = toArray(seller.monthlyValues);
+
+    const totalSellerValue = monthlyValues.reduce((innerAcc, month) => {
+      const [actualValue] = month.value.split('/').map((v) => v.trim());
+      const parsedActual = parseCurrencyBRLToNumber(actualValue) ?? 0;
+      return innerAcc + parsedActual;
+    }, 0);
+
+    return acc + totalSellerValue;
   }, 0);
 }
 
@@ -194,4 +301,26 @@ export function averageTimeToSaleHours(averageTime: AverageTimeAggregate | null)
     return 0;
   }
   return averageTimeInHours(averageTime.totalSale);
+}
+
+
+export function calculateSqlToSaleConversion(
+  performance: SellersMetricsItem[]
+): number {
+  const safePerformance = toArray(performance);
+
+  if (!safePerformance.length) return 0;
+
+  const totals = safePerformance.reduce(
+    (acc, curr) => {
+      acc.sql += curr.sql ?? 0;
+      acc.sales += curr.sales ?? 0;
+      return acc;
+    },
+    { sql: 0, sales: 0 }
+  );
+
+  if (!totals.sql) return 0;
+
+  return (totals.sales / totals.sql) * 100;
 }

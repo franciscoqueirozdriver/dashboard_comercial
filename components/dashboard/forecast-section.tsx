@@ -39,35 +39,75 @@ export function ForecastSection({
   qualificationCount,
   qualificationValue
 }: ForecastSectionProps) {
+  const safeMonthlyDealForecast = monthlyDealForecast ?? [];
+
   const timelineData = useMemo(() => {
     const months = new Set<string>();
-    monthlyDealForecast.forEach((item) => {
-      item.monthlyForecasts.forEach((forecast) => months.add(forecast.periodName));
+    safeMonthlyDealForecast.forEach((item) => {
+      const safeForecasts = item.monthlyForecasts ?? [];
+      safeForecasts.forEach((forecast) => months.add(forecast.periodName));
     });
 
     return Array.from(months)
       .sort((a, b) => a.localeCompare(b))
       .map((month) => {
-        const total = monthlyDealForecast.reduce((acc, seller) => {
-          const monthValue = seller.monthlyForecasts.find((value) => value.periodName === month);
+        const total = safeMonthlyDealForecast.reduce((acc, seller) => {
+          const safeForecasts = seller.monthlyForecasts ?? [];
+          const monthValue = safeForecasts.find((value) => value.periodName === month);
           if (!monthValue) return acc;
           const parsed = parseCurrencyBRLToNumber(monthValue.forecastValue) ?? 0;
           return acc + parsed;
         }, 0);
         return { month, total };
       });
-  }, [monthlyDealForecast]);
+  }, [safeMonthlyDealForecast]);
 
   const perSellerData = useMemo(() => {
-    return monthlyDealForecast.map((item) => ({
-      name: item.userName,
-      value: item.monthlyForecasts.reduce((acc, forecast) => acc + (parseCurrencyBRLToNumber(forecast.forecastValue) ?? 0), 0)
-    }));
-  }, [monthlyDealForecast]);
+    const rows = safeMonthlyDealForecast.map((item) => {
+      const safeForecasts = item.monthlyForecasts ?? [];
 
-  const qualificationData = useMemo(() => {
-    return summarizeQualificationCounts(qualificationCount, qualificationValue);
-  }, [qualificationCount, qualificationValue]);
+      const total = safeForecasts.reduce((acc, forecast) => {
+        const parsedValue = parseCurrencyBRLToNumber(forecast.forecastValue) ?? 0;
+        return acc + parsedValue;
+      }, 0);
+
+      return {
+        userName: item.userName,
+        total
+      };
+    });
+
+    return rows.map((row) => ({
+      name: row.userName,
+      value: row.total
+    }));
+  }, [safeMonthlyDealForecast]);
+
+  const qualificationSummary = useMemo(
+    () => summarizeQualificationCounts(qualificationCount, qualificationValue),
+    [qualificationCount, qualificationValue]
+  );
+
+  const qualificationData = useMemo(
+    () => [
+      {
+        key: 'Muito Quente',
+        count: qualificationSummary.veryHotCount,
+        value: qualificationSummary.veryHotValue
+      },
+      {
+        key: 'Congelada',
+        count: qualificationSummary.frozenCount,
+        value: 0
+      },
+      {
+        key: 'Total',
+        count: qualificationSummary.totalCount,
+        value: qualificationSummary.totalValue
+      }
+    ],
+    [qualificationSummary]
+  );
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
